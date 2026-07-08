@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>桌宠市场 — AI 桌宠下载站</title>
+  <meta name="description" content="浏览和搜索各种桌面宠物，按类型、标签筛选，找到你喜欢的桌宠。">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- 导航 -->
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">🐾</span>
+        AI 桌宠
+      </a>
+      <nav class="nav">
+        <a href="/">首页</a>
+        <a href="/pages/market.html" class="active">桌宠市场</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="section">
+      <div class="section-header">
+        <div>
+          <h1 class="section-title">📦 桌宠市场</h1>
+          <p class="section-subtitle" id="resultCount">加载中...</p>
+        </div>
+      </div>
+
+      <!-- 工具栏 -->
+      <div class="market-toolbar">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" placeholder="搜索桌宠名称、标签、作者..." oninput="onSearchInput(this)">
+        </div>
+        <div class="filter-group" id="filterTypes"></div>
+      </div>
+
+      <!-- 桌宠网格 -->
+      <div class="pet-grid" id="petGrid">
+        <div class="empty-state" style="grid-column: 1 / -1;">
+          <div class="empty-state-icon">⏳</div>
+          <div class="empty-state-text">加载中...</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-text">
+        AI 桌宠下载站 · 发现桌面上的小伙伴
+      </div>
+      <div class="footer-links">
+        <a href="#">关于</a>
+        <a href="#">FAQ</a>
+        <a href="#">提交桌宠</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
+  <script src="/js/market.js"></script>
+</body>
+</html>

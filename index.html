@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 桌宠下载站 — 发现可爱的桌面小伙伴</title>
+  <meta name="description" content="AI 桌宠下载站：发现和下载各种桌面宠物，从经典 Shimeji 到 AI 智能桌宠，一站式桌宠资源平台。">
+  <link rel="stylesheet" href="/css/style.css">
+  <!-- 预加载核心数据 -->
+  <link rel="preload" href="/data/pets.json" as="fetch" crossorigin>
+</head>
+<body>
+
+  <!-- app 容器：所有页面内容由路由器渲染至此 -->
+  <div id="app">
+  <div class="loading-screen" style="display:flex;align-items:center;justify-content:center;min-height:100vh;color:var(--text-muted);">
+    <div style="text-align:center;">
+      <div style="font-size:32px;margin-bottom:8px;">🐾</div>
+      <div style="font-size:14px;">加载中...</div>
+    </div>
+  </div>
+</div>
+
+  <!--
+    * ================================================================
+    * 脚本加载顺序说明
+    * ================================================================
+    * 1. main.js       — 工具函数（loadPets, formatCount, getBadge 等）
+    * 2. router.js     — SPA 路由系统（History API + 链接拦截）
+    * 3. templates.js  — 页面模板系统（所有 Templates.* 函数）
+    * 4. 内联脚本       — 注册路由 + 启动应用
+    *
+    * 自定义页面时：
+    * - 在 templates.js 里写新模板
+    * - 在下面内联脚本里注册新路由
+    * ================================================================
+  -->
+  <script src="/js/main.js"></script>
+  <script src="/js/router.js"></script>
+  <script src="/js/templates.js"></script>
+  <script>
+    // ================================================================
+    // 路由注册 —— 在这里添加你的自定义路径
+    // ================================================================
+
+    // --- 辅助：获取搜索参数 ---
+    function getMarketData(pets, filter, search) {
+      let filtered = [...pets];
+      if (filter && filter !== 'all') filtered = filtered.filter(p => p.type === filter);
+      if (search) {
+        const s = search.toLowerCase();
+        filtered = filtered.filter(p =>
+          p.name.toLowerCase().includes(s) ||
+          p.summary.toLowerCase().includes(s) ||
+          p.tags.join(' ').toLowerCase().includes(s) ||
+          p.author.toLowerCase().includes(s)
+        );
+      }
+      return filtered;
+    }
+
+    // --- 首页 ---
+    router.add('/', async (ctx) => {
+      const pets = await loadPets();
+      const featured = pets.filter(p => p.featured);
+      const recent = [...pets].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6);
+      document.getElementById('app').innerHTML = Templates.homePage({ pets, featured, recent });
+    });
+
+    // --- 市场页（含类型参数）---
+    router.add('/market', async (ctx) => {
+      const pets = await loadPets();
+      const filter = ctx.search.type || 'all';
+      const search = ctx.search.q || '';
+      const filtered = getMarketData(pets, filter, search);
+      document.getElementById('app').innerHTML = Templates.marketPage({
+        pets: filtered,
+        currentFilter: filter,
+        currentSearch: search,
+        resultCount: filtered.length,
+      });
+    });
+
+    // --- 同时支持 /market/type 路径 ---
+    router.add('/market/:type', async (ctx) => {
+      const pets = await loadPets();
+      const filter = ctx.params.type;
+      const filtered = getMarketData(pets, filter, '');
+      document.getElementById('app').innerHTML = Templates.marketPage({
+        pets: filtered,
+        currentFilter: filter,
+        currentSearch: '',
+        resultCount: filtered.length,
+      });
+    });
+
+    // --- 桌宠详情页 ---
+    router.add('/pet/:id', async (ctx) => {
+      const pets = await loadPets();
+      const pet = pets.find(p => p.id === ctx.params.id);
+      if (!pet) {
+        document.getElementById('app').innerHTML = Templates.page(
+          Templates.emptyState('🔍', '未找到该桌宠'), { title: '未找到' }
+        );
+        return;
+      }
+      document.getElementById('app').innerHTML = Templates.detailPage(pet);
+
+      // 渲染相关推荐
+      const relatedContainer = document.getElementById('relatedPets');
+      if (relatedContainer) {
+        const related = pets
+          .filter(p => p.id !== pet.id)
+          .map(p => ({
+            pet: p,
+            score: (p.type === pet.type ? 3 : 0) +
+                   p.tags.filter(t => pet.tags.includes(t)).length
+          }))
+          .sort((a, b) => b.score - a.score || b.pet.downloadCount - a.pet.downloadCount)
+          .slice(0, 4);
+
+        if (related.length) {
+          const section = document.createElement('section');
+          section.className = 'section';
+          section.innerHTML = `
+            <div class="section-header">
+              <h2 class="section-title">🔗 相关推荐</h2>
+            </div>
+            <div class="pet-grid">
+              ${related.map(r => Templates.petCard(r.pet)).join('')}
+            </div>
+          `;
+          relatedContainer.replaceWith(section);
+        }
+      }
+    });
+
+    // --- 关于页 ---
+    router.add('/about', (ctx) => {
+      document.getElementById('app').innerHTML = Templates.aboutPage();
+    });
+
+    // --- FAQ 占位 ---
+    router.add('/faq', (ctx) => {
+      document.getElementById('app').innerHTML = Templates.blankShell(`
+        <h1 class="section-title" style="margin-bottom:24px;">❓ 常见问题</h1>
+        <div style="color:var(--text-secondary);font-size:15px;line-height:1.9;">
+          <p style="margin-bottom:24px;">
+            <strong style="color:var(--text-primary);">Q: 桌宠安全吗？会不会是病毒？</strong><br>
+            本站所有桌宠均经过审核，但我们建议下载后先用杀毒软件扫描。
+            如果你发现可疑文件，请立即联系我们。
+          </p>
+          <p style="margin-bottom:24px;">
+            <strong style="color:var(--text-primary);">Q: 如何安装 Shimeji 桌宠？</strong><br>
+            下载 ZIP 包后解压，运行其中的 .exe（Windows）或 .jar（需要 Java）文件。
+            详细安装教程请查看每个桌宠详情页的说明。
+          </p>
+          <p style="margin-bottom:24px;">
+            <strong style="color:var(--text-primary);">Q: 如何提交我做的桌宠？</strong><br>
+            提交功能正在开发中。目前可以通过 GitHub Issues 提交你的作品。
+          </p>
+          <p>
+            <strong style="color:var(--text-primary);">Q: 网站是开源的吗？</strong><br>
+            是的！本项目完全开源，欢迎贡献代码和桌宠资源。
+          </p>
+        </div>
+      `);
+    });
+
+    // --- 提交桌宠占位 ---
+    router.add('/submit', (ctx) => {
+      document.getElementById('app').innerHTML = Templates.blankShell(`
+        <h1 class="section-title" style="margin-bottom:24px;">📤 提交桌宠</h1>
+        <div style="color:var(--text-muted);font-size:15px;">
+          <p>桌宠提交功能正在开发中，敬请期待！</p>
+          <p style="margin-top:12px;">届时你可以在这里上传你的桌宠作品，分享给更多人。</p>
+        </div>
+      `);
+    });
+
+    // ================================================================
+    // 市场页交互控制器（搜索和筛选的客户端逻辑）
+    // ================================================================
+    window.MarketPage = {
+      search: debounce(async (query) => {
+        router.navigate(`/market?q=${encodeURIComponent(query)}`);
+      }, 300),
+
+      filter(type) {
+        router.navigate(`/market?type=${type}`);
+      },
+    };
+
+    // --- 工具函数：防抖 ---
+    function debounce(fn, ms) {
+      let timer;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), ms);
+      };
+    }
+
+    // ================================================================
+    // 启动！
+    // ================================================================
+    router.start();
+  </script>
+</body>
+</html>
